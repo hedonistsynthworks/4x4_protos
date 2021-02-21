@@ -13,19 +13,111 @@ function reset_grid_before_draw()
   g:all(0)
   
   for x = 1,4 do
-    g:led(x, 3, 2)
+    g:led(x, 3, 5)
     for y = 5,8 do
-      g:led(x, y, 2)
+      g:led(x, y, 5)
     end
   end  
 
   for x = 13,16 do
-    g:led(x, 3, 2)
+    g:led(x, 3, 5)
     for y = 5,8 do
-      g:led(x, y, 2)
+      g:led(x, y, 5)
     end
   end  
 end
 
 reset_grid_before_draw()
 g:refresh()
+
+-- 4x5 sequencer boio
+--[[
+
+A B C D 
+1 2 3 4
+5 6 7 8
+9 101112
+13141516
+
+Letters select channel, A-C are gates (drum samples here) and D is melody gate+cv (synth engine here)
+
+Melody channel has modal input, press step then press note
+
+--]]
+
+
+local grid_1_state = {
+  channels = {
+    {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+    {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+    {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
+    {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
+  },
+  note_entry = false,
+  current_channel = 1
+}
+
+function grid_1_light_step(step)
+  dec = step - 1
+  x = dec % 4
+  y = math.floor((dec - x) / 4)
+  brightness = 0
+  if grid_1_state.current_channel <= 3 and grid_1_state.channels[grid_1_state.current_channel][step]
+  then
+    brightness = 15
+  end
+  print("x.."..x.." y.."..y.." br.."..brightness)
+  g:led(x + 1, y + 5, brightness)
+end
+
+function grid_1_light_steps()
+  for i = 1,16 do
+    grid_1_light_step(i)
+  end
+end
+
+function grid_1_draw()
+  reset_grid_before_draw()
+  g:led(grid_1_state.current_channel, 3, 15)
+  grid_1_light_steps()
+  g:refresh()
+end
+
+function on_grid_1_channel_key(x)
+  print("channel "..tostring(x))
+  grid_1_state.current_channel = x
+end
+
+function on_grid_1_step_key(step)
+  print("step "..tostring(step))
+  if grid_1_state.current_channel <= 3 then
+    grid_1_state.channels[grid_1_state.current_channel][step] = not grid_1_state.channels[grid_1_state.current_channel][step]
+  end
+end
+
+function on_grid_1_key(x,y,z)
+  if y == 3 
+  then
+    on_grid_1_channel_key(x)
+  else
+    step = ((y - 5) * 4) + x
+    on_grid_1_step_key(step)
+  end
+  print(grid_1_state.current_channel)
+  print(grid_1_state.channels[grid_1_state.current_channel])
+  grid_1_draw()
+end
+
+function on_grid_2_key(x,y,z)
+end
+
+g.key = function(x,y,z) 
+  if z == 0 and x <= 4 and (y == 3 or y >= 5) then
+    on_grid_1_key(x,y,z)
+  end
+
+  if z == 0 and x >= 13 and (y == 3 or y >= 5) then
+    on_grid_2_key(x,y,z)
+  end
+
+end
