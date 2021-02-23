@@ -6,6 +6,8 @@ local MusicUtil = require "musicutil"
 
 local clk = BeatClock.new()
 
+engine.name = "Timber"
+
 g = grid.connect()
 m = midi.connect()
 
@@ -58,6 +60,16 @@ local grid_1_state = {
   position = 1
 }
 
+function configure_sampler()
+  engine.loadSample(1, _path.dust.."/audio/common/909/909-BD.wav")
+  engine.loadSample(2, _path.dust.."/audio/common/909/909-CP.wav")
+  engine.loadSample(3, _path.dust.."/audio/common/909/909-CH.wav")
+  for i = 1,3 do
+    engine.playMode(i, 3)
+    engine.ampAttack(i, 0)
+  end
+end
+
 function grid_1_light_step(step, on_brightness)
   dec = step - 1
   x = dec % 4
@@ -70,7 +82,6 @@ function grid_1_light_step(step, on_brightness)
   then
     brightness = on_brightness
   end
-  print("x.."..x.." y.."..y.." br.."..brightness)
   g:led(x + 1, y + 5, brightness)
 end
 
@@ -88,12 +99,10 @@ function grid_1_draw()
 end
 
 function on_grid_1_channel_key(x)
-  print("channel "..tostring(x))
   grid_1_state.current_channel = x
 end
 
 function on_grid_1_step_key(step)
-  print("step "..tostring(step))
   if grid_1_state.current_channel <= 3 then
     grid_1_state.channels[grid_1_state.current_channel][step] = not grid_1_state.channels[grid_1_state.current_channel][step]
   end
@@ -107,8 +116,6 @@ function on_grid_1_key(x,y,z)
     step = ((y - 5) * 4) + x
     on_grid_1_step_key(step)
   end
-  print(grid_1_state.current_channel)
-  print(grid_1_state.channels[grid_1_state.current_channel])
   grid_1_draw()
 end
 
@@ -126,12 +133,23 @@ g.key = function(x,y,z)
 
 end
 
+function play(position)
+  for track = 1,3 do
+    if grid_1_state.channels[track][position]
+    then
+      engine.noteOn(track, MusicUtil.note_num_to_freq(60), 127, track)
+    end
+  end
+end
+
 function step()
   grid_1_state.position = (grid_1_state.position % 16) + 1
   grid_1_draw()
+  play(grid_1_state.position)
 end
 
 function init()
+  configure_sampler()
   clk:add_clock_params()
   clk.on_step = step
 
