@@ -54,17 +54,21 @@ local grid_1_state = {
     {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
   },
   note_entry = false,
-  current_channel = 1
+  current_channel = 1,
+  position = 1
 }
 
-function grid_1_light_step(step)
+function grid_1_light_step(step, on_brightness)
   dec = step - 1
   x = dec % 4
   y = math.floor((dec - x) / 4)
   brightness = 0
-  if grid_1_state.current_channel <= 3 and grid_1_state.channels[grid_1_state.current_channel][step]
+  if step == grid_1_state.position
   then
-    brightness = 15
+    brightness = 8
+  elseif grid_1_state.current_channel <= 3 and grid_1_state.channels[grid_1_state.current_channel][step]
+  then
+    brightness = on_brightness
   end
   print("x.."..x.." y.."..y.." br.."..brightness)
   g:led(x + 1, y + 5, brightness)
@@ -72,7 +76,7 @@ end
 
 function grid_1_light_steps()
   for i = 1,16 do
-    grid_1_light_step(i)
+    grid_1_light_step(i, 15)
   end
 end
 
@@ -120,4 +124,16 @@ g.key = function(x,y,z)
     on_grid_2_key(x,y,z)
   end
 
+end
+
+function step()
+  grid_1_state.position = (grid_1_state.position % 16) + 1
+  grid_1_draw()
+end
+
+function init()
+  clk:add_clock_params()
+  clk.on_step = step
+
+  clk:start()
 end
