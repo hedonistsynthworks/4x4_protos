@@ -48,7 +48,7 @@ Melody channel has modal input, press step then press note
 --]]
 
 
-local grid_1_state = {
+local state = {
   channels = {
     {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
     {false, false, false, false, false, false, false, false, false, false, false, false, false, false, false, false},
@@ -57,7 +57,8 @@ local grid_1_state = {
   },
   note_entry = false,
   current_channel = 1,
-  position = 1
+  position = 1,
+  note_mode = false
 }
 
 function configure_sampler()
@@ -70,53 +71,53 @@ function configure_sampler()
   end
 end
 
-function grid_1_light_step(step, on_brightness)
+function light_step(step, on_brightness)
   dec = step - 1
   x = dec % 4
   y = math.floor((dec - x) / 4)
   brightness = 0
-  if step == grid_1_state.position
+  if step == state.position
   then
     brightness = 8
-  elseif grid_1_state.current_channel <= 3 and grid_1_state.channels[grid_1_state.current_channel][step]
+  elseif state.current_channel <= 3 and state.channels[state.current_channel][step]
   then
     brightness = on_brightness
   end
   g:led(x + 1, y + 5, brightness)
 end
 
-function grid_1_light_steps()
+function light_steps()
   for i = 1,16 do
-    grid_1_light_step(i, 15)
+    light_step(i, 15)
   end
 end
 
-function grid_1_draw()
+function draw()
   reset_grid_before_draw()
-  g:led(grid_1_state.current_channel, 3, 15)
-  grid_1_light_steps()
+  g:led(state.current_channel, 3, 15)
+  light_steps()
   g:refresh()
 end
 
-function on_grid_1_channel_key(x)
-  grid_1_state.current_channel = x
+function on_channel_key(x)
+  state.current_channel = x
 end
 
-function on_grid_1_step_key(step)
-  if grid_1_state.current_channel <= 3 then
-    grid_1_state.channels[grid_1_state.current_channel][step] = not grid_1_state.channels[grid_1_state.current_channel][step]
+function on_step_key(step)
+  if state.current_channel <= 3 then
+    state.channels[state.current_channel][step] = not state.channels[state.current_channel][step]
   end
 end
 
-function on_grid_1_key(x,y,z)
+function on_key(x,y,z)
   if y == 3 
   then
-    on_grid_1_channel_key(x)
+    on_channel_key(x)
   else
     step = ((y - 5) * 4) + x
-    on_grid_1_step_key(step)
+    on_step_key(step)
   end
-  grid_1_draw()
+  draw()
 end
 
 function on_grid_2_key(x,y,z)
@@ -124,7 +125,7 @@ end
 
 g.key = function(x,y,z) 
   if z == 0 and x <= 4 and (y == 3 or y >= 5) then
-    on_grid_1_key(x,y,z)
+    on_key(x,y,z)
   end
 
   if z == 0 and x >= 13 and (y == 3 or y >= 5) then
@@ -135,7 +136,7 @@ end
 
 function play(position)
   for track = 1,3 do
-    if grid_1_state.channels[track][position]
+    if state.channels[track][position]
     then
       engine.noteOn(track, MusicUtil.note_num_to_freq(60), 127, track)
     end
@@ -143,9 +144,9 @@ function play(position)
 end
 
 function step()
-  grid_1_state.position = (grid_1_state.position % 16) + 1
-  grid_1_draw()
-  play(grid_1_state.position)
+  state.position = (state.position % 16) + 1
+  draw()
+  play(state.position)
 end
 
 function init()
